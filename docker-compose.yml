@@ -1,0 +1,14 @@
+version: "2.1"
+
+services:
+  deluge-exporter:
+    image: ngosang/deluge-exporter
+    container_name: deluge-exporter
+    environment:
+      - TZ=Europe/Madrid
+      - DELUGE_URL=http://192.168.1.191:8112
+      - DELUGE_PASSWORD=<password_here>
+      - LOG_LEVEL=INFO
+    ports:
+      - "8011:8011"
+    restart: unless-stopped
