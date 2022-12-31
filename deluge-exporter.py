@@ -48,13 +48,16 @@ class DelugeCollector(object):
                 yield metric
 
     def get_deluge_stats(self) -> dict:
-        stats = self.get_webui_data()
-        if stats is None:
+        data = self.get_webui_data()
+        if data is None:
             self.get_login()
-            stats = self.get_webui_data()
-        if stats is None:
-            raise Exception(f"Get stats error! Stats are empty")
-        return stats
+            data = self.get_webui_data()
+        if not data["connected"]:
+            self.get_connection()
+            data = self.get_webui_data()
+        if data is None or not data["connected"]:
+            raise Exception(f"Get stats error! Data: {data}")
+        return data
 
     def get_login(self):
         logging.info("Loging in Deluge Web UI...")
@@ -70,6 +73,33 @@ class DelugeCollector(object):
         if not response_json["result"]:
             raise Exception(f"Get login error! Bad credentials")
         logging.info("Loging successful!")
+
+    def get_connection(self):
+        logging.info("Connecting Deluge Web UI...")
+        payload = {
+            "method": "web.get_hosts",
+            "params": [],
+            "id": 1
+        }
+        response = self.session.post(self.deluge_api_url, json=payload)
+        if response.status_code != 200:
+            raise Exception(f"Get connection error! Bad HTTP Code: {response.status_code} Response: {response.text}")
+        response_json = response.json()
+        if not response_json["result"] or len(response_json["result"]) < 1:
+            raise Exception(f"Get connection error! Bad response. Response: {response.text}")
+        server_id = response_json["result"][0][0]
+        payload = {
+            "method": "web.connect",
+            "params": [server_id],
+            "id": 1
+        }
+        response = self.session.post(self.deluge_api_url, json=payload)
+        if response.status_code != 200:
+            raise Exception(f"Get connection error! Bad HTTP Code: {response.status_code} Response: {response.text}")
+        response_json = response.json()
+        if not response_json["result"]:
+            raise Exception(f"Get connection error! Bad response. Response: {response.text}")
+        logging.info("Connected successful!")
 
     def get_webui_data(self) -> dict:
         # we use an incorrect label filter to avoid getting torrent data
