@@ -34,7 +34,7 @@ class DelugeCollector(object):
         # torrents by label
         deluge_torrent_label_count = prometheus_client.core.GaugeMetricFamily(
             "deluge_torrent_label_count", "Number of torrents by label", labels=["label"])
-        for label in deluge_stats["filters"]["label"]:
+        for label in deluge_stats["filters"].get("label", []):
             deluge_torrent_label_count.add_metric([label[0].lower()], label[1])
         yield deluge_torrent_label_count
 
